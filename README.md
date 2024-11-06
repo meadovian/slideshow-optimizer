@@ -1,15 +1,27 @@
 # Slideshow Optimizer (slideshow-optimizer.sh)
 
-A powerful command-line tool for creating optimized video slideshows from sequences of PNG images. Designed for content creators, digital artists, and anyone needing to create efficient video presentations from image sequences.
+A powerful command-line tool for creating optimized video slideshows from sequences of PNG images. Specifically designed for artists, content creators, and digital storytellers who need to create high-quality video presentations from image sequences.
 
-## Overview
+## Features
 
-Slideshow Optimizer converts a series of PNG images into an optimized video slideshow, with features including:
+- Handles varying image dimensions automatically
 - Multiple optimization presets for different use cases
-- Configurable image durations
-- Smooth transitions
-- Two-pass encoding for superior compression
-- Platform-specific output profiles
+- Configurable frame durations
+- Smooth transitions between frames
+- Two-pass encoding option for superior quality
+- Maintains aspect ratios
+- White background padding for non-uniform dimensions
+- Automatic sequential ordering of images
+
+## Prerequisites
+
+- macOS (tested on Sonoma 14.6)
+- ffmpeg (required for video processing)
+
+Install ffmpeg using Homebrew:
+```bash
+brew install ffmpeg
+```
 
 ## Installation
 
@@ -23,54 +35,79 @@ curl -O https://[your-repository]/slideshow-optimizer.sh
 chmod +x slideshow-optimizer.sh
 ```
 
-3. Ensure ffmpeg is installed:
-```bash
-brew install ffmpeg
-```
-
 ## Basic Usage
 
 ```bash
 ./slideshow-optimizer.sh /path/to/your/images
 ```
 
+## Options
+
+```
+Options:
+  -d, --duration SECONDS    Default duration per image (default: 2)
+  -o, --output FILENAME     Output filename (default: output.mp4)
+  -f, --framerate FPS      Output framerate (default: 30)
+  -p, --preset NAME        Optimization preset (default: web-hd)
+  -t, --transition SECONDS Fade transition duration (default: 0.5, 0 for no fade)
+  --two-pass              Enable two-pass encoding for better compression
+```
+
 ## Optimization Presets
 
-Choose from several optimization presets designed for different use cases:
-
-| Preset | Description | Use Case |
+| Preset | Description | Best For |
 |--------|-------------|----------|
 | web-small | Minimal file size (80% reduction) | Web embedding, email sharing |
 | web-medium | Balanced quality (60% reduction) | General web usage |
 | web-hd | High quality (30% reduction) | Professional web display |
-| mobile | Mobile-optimized (70% reduction) | Mobile apps, WhatsApp |
+| mobile | Mobile-optimized (70% reduction) | Mobile apps, messaging |
 | social | Social media optimized (50% reduction) | Instagram, Twitter |
-| archive | Maximum quality | Archival, source material |
+| archive | Maximum quality | Source material, archiving |
 
-### Using Presets
+## Example Use Cases
 
+1. **Art Portfolio Presentation**
 ```bash
-# For social media
-./slideshow-optimizer.sh /path/to/images -p social
-
-# For maximum quality
-./slideshow-optimizer.sh /path/to/images -p archive --two-pass
+./slideshow-optimizer.sh /path/to/artwork -p archive --two-pass -d 3 -t 1.0
 ```
+This creates a high-quality video with:
+- Maximum quality preservation
+- 3-second display per image
+- 1-second fade transitions
+- Two-pass encoding for best quality
+Perfect for showcasing detailed artwork where quality is crucial.
 
-## Advanced Options
-
+2. **Social Media Story**
 ```bash
-Options:
-  -d, --duration SECONDS    Default duration per image (default: 2)
-  -o, --output FILENAME     Output filename (default: output.mp4)
-  -f, --framerate FPS       Output framerate (default: 30)
-  -p, --preset NAME         Optimization preset (default: web-hd)
-  -t, --transition SECONDS  Fade transition duration (default: 0.5, 0 for no fade)
-  --two-pass               Enable two-pass encoding for better compression
-  -h, --help               Show help message
+./slideshow-optimizer.sh /path/to/images -p social -d 1.5 -t 0.3 -o instagram_story.mp4
 ```
+This creates a social-media optimized video with:
+- Balanced compression for social platforms
+- Quick 1.5-second display per image
+- Short 0.3-second transitions
+- Optimized for mobile viewing
+Ideal for Instagram stories or Twitter posts.
 
-## Customizing Image Durations
+3. **Web Gallery Preview**
+```bash
+./slideshow-optimizer.sh /path/to/gallery -p web-small -d 2 -t 0.5 -f 24
+```
+This creates a lightweight web-optimized video with:
+- Small file size for fast loading
+- Standard 2-second display time
+- Smooth 0.5-second transitions
+- 24fps for web efficiency
+Perfect for website embedding or email distribution.
+
+## Working With Image Sequences
+
+The script automatically:
+1. Orders images by timestamp
+2. Renames them sequentially (image001.png, image002.png, etc.)
+3. Creates a durations.txt file for timing control
+4. Handles varying image dimensions with intelligent scaling
+
+## Customizing Frame Durations
 
 1. Run the script initially
 2. Edit the `durations.txt` file in the temporary directory
@@ -83,88 +120,18 @@ image002.png=2.5
 image003.png=4
 ```
 
-## Output Specifications
-
-Each preset produces different output characteristics:
-
-### web-small
-- Resolution: 50% of original
-- High compression (CRF 28)
-- Fast encoding
-- Target bitrate: 1000k
-
-### web-medium
-- Resolution: 75% of original
-- Medium compression (CRF 23)
-- Standard encoding
-- Target bitrate: 2000k
-
-### web-hd
-- Full resolution
-- Light compression (CRF 21)
-- Standard encoding
-- Target bitrate: 4000k
-
-### mobile
-- Resolution: 60% of original
-- Balanced compression (CRF 26)
-- Fast encoding
-- Target bitrate: 1500k
-
-### social
-- Resolution: 85% of original
-- Balanced compression (CRF 24)
-- Standard encoding
-- Target bitrate: 2500k
-
-### archive
-- Full resolution
-- Minimal compression (CRF 18)
-- Slow, high-quality encoding
-- Target bitrate: 8000k
-
-## Two-Pass Encoding
-
-Enable two-pass encoding for better compression:
-```bash
-./slideshow-optimizer.sh /path/to/images --two-pass
-```
-
-Benefits:
-- Better quality at same file size
-- More consistent quality
-- Better handling of complex transitions
-- Recommended for final outputs
-
-## Examples
-
-1. Quick social media video:
-```bash
-./slideshow-optimizer.sh ~/Pictures/event -p social -t 0.5
-```
-
-2. High-quality archive:
-```bash
-./slideshow-optimizer.sh ~/Pictures/artwork -p archive --two-pass
-```
-
-3. Web embedding with custom duration:
-```bash
-./slideshow-optimizer.sh ~/Pictures/slides -p web-small -d 3
-```
-
 ## Best Practices
 
 1. **Image Preparation**
-   - Use consistent image dimensions when possible
-   - Ensure PNGs are properly optimized
-   - Name files consistently for proper sequencing
+   - Use high-quality PNG files
+   - Clean filenames (avoid special characters)
+   - Consider ordering by timestamp for sequence control
 
-2. **Preset Selection**
-   - Use web-small for email/messaging
-   - Use social for social media platforms
-   - Use archive for source material
-   - Use two-pass for important final outputs
+2. **Quality vs Size**
+   - Use 'archive' preset for professional presentations
+   - Use 'social' preset for social media
+   - Use 'web-small' for email/messaging
+   - Enable two-pass encoding for important outputs
 
 3. **Performance**
    - Start with faster presets for testing
@@ -173,21 +140,20 @@ Benefits:
 
 ## Troubleshooting
 
-1. **Permission Errors**
+1. **Permission Issues**
 ```bash
 chmod 644 /path/to/images/*.png
-chmod 644 /path/to/images/tmp/durations.txt
 ```
 
-2. **Memory Issues**
-   - Use web-small preset
-   - Reduce input image dimensions
-   - Ensure sufficient free disk space
+2. **Quality Issues**
+   - Try archive preset
+   - Enable two-pass encoding
+   - Check source image quality
 
-3. **Quality Issues**
-   - Try two-pass encoding
-   - Use a higher-quality preset
-   - Check input image quality
+3. **Size Issues**
+   - Try web-small preset
+   - Reduce transition duration
+   - Adjust framerate
 
 ## Contributing
 
@@ -204,5 +170,5 @@ MIT License - See LICENSE.md for details.
 ## Support
 
 - Report issues on GitHub
-- Check the wiki for advanced usage
+- Check documentation for advanced usage
 - Join the community discussions
