@@ -328,7 +328,7 @@ create_video() {
     INPUTS=""
     count=0
     
-    # Process each image
+# Process each image
     while IFS= read -r -d '' img; do
         if [ -f "$img" ] && [ -r "$img" ]; then
             # Get duration from durations.txt
@@ -345,9 +345,9 @@ create_video() {
             
             # Add to filter complex with optional fade transition
             if [ $count -gt 0 ] && [ "$(echo "$DEFAULT_FADE > 0" | bc -l)" -eq 1 ]; then
-                FILTER_COMPLEX="$FILTER_COMPLEX[$count:v]scale=${MAX_WIDTH}:${MAX_HEIGHT}:force_original_aspect_ratio=0,setsar=1:1,format=yuva420p,fade=in:st=0:d=${DEFAULT_FADE}:alpha=1[v${count}];"
+                FILTER_COMPLEX="$FILTER_COMPLEX[$count:v]scale=w='min($MAX_WIDTH,iw)':h='min($MAX_HEIGHT,ih)':force_original_aspect_ratio=1,pad=$MAX_WIDTH:$MAX_HEIGHT:(ow-iw)/2:(oh-ih)/2:white,setsar=1:1,format=yuva420p,fade=in:st=0:d=${DEFAULT_FADE}:alpha=1[v${count}];"
             else
-                FILTER_COMPLEX="$FILTER_COMPLEX[$count:v]scale=${MAX_WIDTH}:${MAX_HEIGHT}:force_original_aspect_ratio=0,setsar=1:1[v$count];"
+                FILTER_COMPLEX="$FILTER_COMPLEX[$count:v]scale=w='min($MAX_WIDTH,iw)':h='min($MAX_HEIGHT,ih)':force_original_aspect_ratio=1,pad=$MAX_WIDTH:$MAX_HEIGHT:(ow-iw)/2:(oh-ih)/2:white,setsar=1:1[v$count];"
             fi
             
             log_info "Processing $(basename "$img") (duration: $duration seconds)"
@@ -368,20 +368,22 @@ create_video() {
             exit $E_GENERAL
         fi
     else
-        # Single pass encoding
-        CMD="ffmpeg -y -hide_banner -loglevel info $INPUTS \
-            -filter_complex \"$FILTER_COMPLEX\" \
-            -map \"[outv]\" \
-            -c:v libx264 \
-            -preset $ENCODE_PRESET \
-            -crf $CRF \
-            -maxrate $MAXRATE \
-            -bufsize $BUFSIZE \
-            -pix_fmt yuv420p \
-            -tune stillimage \
-            -movflags +faststart \
-            -r $DEFAULT_FRAMERATE \
-            \"$OUTPUT_FILENAME\""
+		# Inside create_video function, modify the ffmpeg command to use the full path with filename:
+		CMD="ffmpeg -y -hide_banner -loglevel info $INPUTS \
+		    -filter_complex \"$FILTER_COMPLEX\" \
+		    -map \"[outv]\" \
+		    -c:v libx264 \
+		    -preset $ENCODE_PRESET \
+		    -crf $CRF \
+		    -maxrate $MAXRATE \
+		    -bufsize $BUFSIZE \
+		    -pix_fmt yuv420p \
+		    -tune stillimage \
+		    -movflags +faststart \
+		    -r $DEFAULT_FRAMERATE \
+		    \"${WORK_DIR}/${DEFAULT_OUTPUT}\""
+		
+		# And earlier in the script (near the top with other defaults), make sure we have:
         
         log_info "Creating video..."
         if ! eval "$CMD"; then
@@ -390,22 +392,18 @@ create_video() {
         fi
     fi
     
+	# After the ffmpeg command in create_video function:
+    
     # Check if video was created successfully
-    if [ ! -f "$OUTPUT_FILENAME" ]; then
+    if [ ! -f "${WORK_DIR}/${DEFAULT_OUTPUT}" ]; then
         log_error "Failed to create final video"
         exit $E_GENERAL
     fi
     
-    # Move output video to original directory
-    if ! mv "$OUTPUT_FILENAME" "$WORK_DIR/"; then
-        log_error "Failed to move output file to destination"
-        exit $E_GENERAL
-    fi
+    # Calculate and display output file size
+    output_size=$(ls -lh "${WORK_DIR}/${DEFAULT_OUTPUT}" | awk '{print $5}')
     
-# Calculate and display output file size
-    output_size=$(ls -lh "$WORK_DIR/$OUTPUT_FILENAME" | awk '{print $5}')
-    
-    log_info "Video created successfully: $WORK_DIR/$OUTPUT_FILENAME"
+    log_info "Video created successfully: ${WORK_DIR}/${DEFAULT_OUTPUT}"
     log_info "Processed $count images"
     log_info "Final video dimensions: ${MAX_WIDTH}x${MAX_HEIGHT}"
     log_info "Preset used: $DEFAULT_PRESET"
