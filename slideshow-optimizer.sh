@@ -157,32 +157,35 @@ prepare_working_directory() {
     # Create tmp directory
     mkdir -p "$TMP_DIR"
     
-    # Copy and rename PNG files sequentially based on timestamp
-    local count=1
-    find "$WORK_DIR" -maxdepth 1 -name "*.png" -type f -print0 | \
-        sort -z | while IFS= read -r -d '' img; do
+    # Debug: Show file ordering before processing
+    log_debug "Processing files in order:"
+    find "$WORK_DIR" -maxdepth 1 -name "*.png" -type f -exec stat -f "%m %N" {} \; | \
+        sort -n | cut -d" " -f2- | while read -r file; do
+        log_debug "  $(basename "$file") - $(stat -f "%Sm" "$file")"
+    done
+    
+    # Copy and rename files based on timestamp
+    count=1
+    find "$WORK_DIR" -maxdepth 1 -name "*.png" -type f -exec stat -f "%m %N" {} \; | \
+        sort -n | cut -d" " -f2- | while read -r file; do
         filename=$(printf "image%03d.png" $count)
-        cp "$img" "$TMP_DIR/$filename"
-        log_info "Copied $(basename "$img") → $filename"
+        cp "$file" "$TMP_DIR/$filename"
+        log_info "Copied $(basename "$file") → $filename"
         ((count++))
     done
     
-    # Create a durations file if it doesn't exist
-    if [ ! -f "$TMP_DIR/durations.txt" ]; then
-        find "$TMP_DIR" -name "*.png" -type f -print0 | \
-            sort -z | while IFS= read -r -d '' img; do
-            echo "$(basename "$img")=$DEFAULT_DURATION" >> "$TMP_DIR/durations.txt"
-        done
-    fi
+    # Create durations file
+    DURATIONS_FILE="$TMP_DIR/durations.txt"
+    echo "Creating durations file..."
+    find "$TMP_DIR" -name "*.png" -type f -print0 | \
+        sort -z | while IFS= read -r -d '' img; do
+        echo "$(basename "$img")=$DEFAULT_DURATION" >> "$DURATIONS_FILE"
+    done
     
-    # Verify files were copied
-    if [ ! "$(find "$TMP_DIR" -name "*.png" | wc -l)" -gt 0 ]; then
-        log_error "Failed to copy PNG files to temporary directory"
-        return $E_GENERAL
-    fi
-    
-    log_info "Prepared working directory with $(find "$TMP_DIR" -name "*.png" | wc -l) images"
-    return $E_SUCCESS
+    echo ""
+    echo "Files have been prepared in: $TMP_DIR"
+    echo "Default duration of $DEFAULT_DURATION seconds has been set for all images"
+    echo "You can now edit durations in: $DURATIONS_FILE"
 }
 
 # Image validation
